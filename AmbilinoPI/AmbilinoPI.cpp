@@ -12,6 +12,19 @@ void printTimeSinceLastCall(String caption) {
 	time = micros();
 }
 
+void printFrame(uint8_t* buffer, uint8_t length) {
+
+	for(int i=1;i<=length;i++) {
+		Serial.print("0x");
+		Serial.print(buffer[i],HEX);
+		Serial.print(" ");
+		if(i%10 == 0) {
+			Serial.println();
+		}
+	}
+	Serial.println();
+}
+
 void printCRGB(CRGB color) {
 	Serial.print(color.r, HEX);
 	Serial.print(" ");
@@ -42,14 +55,16 @@ void setup() {
 //	LEDS.showColor(CRGB::Black);
 //	while(1){}
 
+	//	LEDS.showColor(CRGB(0, 0, 0));
 	LEDS.setBrightness(LED_MAX_BRIGHTNESS);
 
 	// Debugging Serial
-//	Serial.begin(HARDWARE_UART_BAUDRATE);
 	Serial.begin(COMM_HW_BAUDRATE);
+	Serial.flush();
 
-	// Read from Serial
+	// Rasberry Pi Serial, TODO use Hardware Serial instead?
 	softSerial.begin(COMM_SW_BAUDRATE);
+	softSerial.flush();
 
 	// Wait for Serial to set up.
 	while (!Serial) {}
@@ -113,6 +128,8 @@ void UpdateStrip() {
 
 void fastLoop() {
 
+//			printTimeSinceLastCall("for(;;) loop: ");
+
 	uint32_t updateTime = millis();
 
 	#ifdef MODE_SIMULATION
@@ -126,14 +143,14 @@ void fastLoop() {
 				for(int i = 0 ; i < LED_LEFT_COUNT; i++ ) {
 				  scanValues[i][0] = 255;
 				  scanValues[i][1] = 0;
-				  scanValues[i][2] = 255;
+				  scanValues[i][2] = 0;
 				  UpdateStrip();
 				  delay(CAPTURE_DELAY_MS);
 				}
 				for(int i = LED_LEFT_COUNT ; i >= 0; i-- ) {
-				  scanValues[i][0] = 0;
+				  scanValues[i][0] = 255;
 				  scanValues[i][1] = 255;
-				  scanValues[i][2] = 0;
+				  scanValues[i][2] = 255;
 				  UpdateStrip();
 				  delay(CAPTURE_DELAY_MS);
 				}
@@ -142,59 +159,55 @@ void fastLoop() {
 			while(millis() - updateTime < CAPTURE_DELAY_MS) {};
 
 		}
-
 	#else
 
-		// TODO size?!
-		char* serialBuffer = new char[1000];
-	// start of main loop
+		// start of main loop
 		for (;;) {
 
-//			printTimeSinceLastCall("for(;;) loop: ");
+			if(Serial.find(SYNC_POSTFIX)) {
 
-			if (int counter = Serial.available()) {
-
-				Serial.write(counter);
-
-				if(counter != (LED_LEFT_CHANNELS + SYNC_PREFIX_LENGTH + SYNC_POSTFIX_LENGTH)) {
-//						Serial.println("Error in current line...");
-					softSerial.flush();
-				} else {
-
-					Serial.readBytes(serialBuffer, LED_LEFT_CHANNELS + SYNC_PREFIX_LENGTH + SYNC_POSTFIX_LENGTH);
-
-					#ifdef MODE_ECHO
-//							Serial.write(serialBuffer);
-					#endif // ! MODE_ECHO
-
-					// manually limit char*
-					serialBuffer[counter] = '\0';
-
-					for(int i=0;i<LED_LEFT_COUNT;i++) {
-						for(int color=0;color<3;color++) {
-							scanValues[i][color] = serialBuffer[i*3 + color + SYNC_PREFIX_LENGTH];
-						}
-
-						// Print read Colors of pixel i
-//							Serial.print(i);
-//							Serial.print(": ");
-//							printCRGB(scanValues[i]);
-
-					}
+				// TODO anders organisieren?
+				int i=0;
+				for(int i=0;i<108;i++) {
+					while(!Serial.available()) {}
+					serialBuffer[i] = Serial.read();
 				}
+
+				serialBuffer[108] = '\0';
+
+				#ifdef MODE_ECHO
+					Serial.println((char*) serialBuffer);
+				#endif
+
+				// ########################################
+				// TODO hier weitermachen! serialbuffer werte liegen nicht richtig!!!
+				// ########################################
+
+				for(int i=0;i<LED_LEFT_COUNT;i++) {
+					for(int color=0;color<3;color++) {
+						scanValues[i][color] = serialBuffer[i*3 + color + SYNC_PREFIX_LENGTH];
+					}
+
+					// Print read Colors of pixel i
+//					Serial.print(i);
+//					Serial.print(": ");
+//					printCRGB(scanValues[i]);
+				}
+
+
+				// Update stripvalues
+				UpdateStrip();
+
+				while(millis() - updateTime < CAPTURE_DELAY_MS) {};
+
+				// reset updatetime
+				updateTime = millis();
+
 			}
-
-			// Update stripvalues
-			UpdateStrip();
-
-			while(millis() - updateTime < CAPTURE_DELAY_MS) {};
-
-			// reset updatetime
-			updateTime = millis();
-
 		}
-
-
 	#endif // !MODE_SIMULATION
-
 }
+
+
+
+

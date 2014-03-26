@@ -115,7 +115,7 @@ The basic schematic of the circuit looks like this:
 	    %atmega
 	    \draw (-5,1) -- (-1.87,1) node[right]{VCC} node[above left]{}
 			  (-3.87,-2.48) node[below]{$Data_{in}$} |- (-1.87,0.5) node[right]{$Left_{DO}$} node[above left]{7}
-			  (-3,0) node[left]{\dots} -- (-1.87,0) node[right]{$Right_{DO}$} node[above left]{??}
+			  (-3.87,0) -- (-1.87,0) node[right]{$Right_{DO}$} node[above left]{8}
 			  (-3,-0.5) node[left]{\dots} -- (-1.87,-0.5) node[right]{$Top_{DO}$} node[above left]{??}
 			  (-3,-1)  node[left]{\dots} -- (-1.87,-1) node[right]{$Bottom_{DO}$} node[above left]{??};
 	
@@ -174,14 +174,6 @@ adjust          0.5
 blacklevel      0.1
 gamma           2.3
 
-[color]
-name green
-rgb 00FF00
-
-[color]
-name blue
-rgb 0000FF
-
 [light]
 name led0000
 color red ambilightleft 1
@@ -190,6 +182,7 @@ color blue ambilightleft 3
 hscan 0 10
 vscan 0 6
 \end{verbatim}
+
 \label{fig:boblightconfexample}
 After the general setup, you can tweak the colors of your stripe with adjust, blacklevel and gamma. When you are finished, you can set the individual LEDs and their corresponding screen rectangles.
 
