@@ -73,7 +73,6 @@ void setup();
 	CRGB leds_left[LED_LEFT_COUNT];
 	CRGB leds_right[LED_RIGHT_COUNT];
 
-
 	const uint32_t COMM_FRAMESIZE = SYNC_PREFIX_LENGTH + SYNC_POSTFIX_LENGTH + LED_CHANNELS;
 
 /*** Communication ***/
@@ -83,7 +82,7 @@ void setup();
 
 	// TODO letztlich auf USB serial umstellen? arduino und raspberry über USB verbinden!
 	SoftwareSerial 	softSerial(COMM_SW_RX_PIN, COMM_SW_TX_PIN);
-	uint8_t* serialBuffer = new uint8_t[200];
+	uint8_t* serialBuffer = new uint8_t[COMM_FRAMESIZE];
 	uint32_t serialCounter;
 
 /*** Functions ***/

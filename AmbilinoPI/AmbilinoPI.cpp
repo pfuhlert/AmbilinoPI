@@ -44,6 +44,9 @@ CRGB currValues[LED_LEFT_COUNT];
 CRGB scanValues[LED_LEFT_COUNT];
 int diffValues[LED_LEFT_COUNT][3];
 
+String inputString;
+bool stringComplete;
+
 void setup() {
 
 	// TODO Reset LEDs on startup - not possible with LEDS.showcolor -> nothing known of stripelength
@@ -60,18 +63,15 @@ void setup() {
 
 	// Debugging Serial
 	Serial.begin(COMM_HW_BAUDRATE);
-	Serial.flush();
 
-	// Rasberry Pi Serial, TODO use Hardware Serial instead?
+	// Software Serial, TODO use Hardware Serial instead?
 	softSerial.begin(COMM_SW_BAUDRATE);
-	softSerial.flush();
 
-	// Wait for Serial to set up.
+	// Wait for Serials to set up.
 	while (!Serial) {}
 
 	// avoid loop() function
 	fastLoop();
-
 }
 
 // limitChange() : limit max change according to sign
@@ -86,7 +86,6 @@ int limitChange(int* value) {
 	} else {
 		untouched = true;
 	}
-
 	return untouched;
 }
 
@@ -161,44 +160,52 @@ void fastLoop() {
 		}
 	#else
 
+
 		// start of main loop
 		for (;;) {
 
-			if(Serial.find(SYNC_POSTFIX)) {
+			if(Serial.find(SYNC_PREFIX)) {
 
 				// TODO anders organisieren?
-				int i=0;
-				for(int i=0;i<108;i++) {
-					while(!Serial.available()) {}
-					serialBuffer[i] = Serial.read();
-				}
 
+				// manually limit buffer
 				serialBuffer[108] = '\0';
 
 				#ifdef MODE_ECHO
-					Serial.println((char*) serialBuffer);
 				#endif
 
-				// ########################################
-				// TODO hier weitermachen! serialbuffer werte liegen nicht richtig!!!
-				// ########################################
-
-				for(int i=0;i<LED_LEFT_COUNT;i++) {
-					for(int color=0;color<3;color++) {
-						scanValues[i][color] = serialBuffer[i*3 + color + SYNC_PREFIX_LENGTH];
+				char inChar;
+				if(Serial.find(SYNC_PREFIX)) {
+					for(int i=0;i<COMM_FRAMESIZE-SYNC_PREFIX_LENGTH;i++) {
+						while(!Serial.available()) {}
+						inChar = Serial.read();
+						inputString += inChar;
 					}
 
-					// Print read Colors of pixel i
-//					Serial.print(i);
-//					Serial.print(": ");
-//					printCRGB(scanValues[i]);
+					int i=0;
+					for(int i=0;i<LED_LEFT_COUNT;i++) {
+						for(int color=0;color<3;color++) {
+							scanValues[i][color] = (byte) inputString[i*3 + color];
+						}
+
+						// Print read Colors of pixel i
+//						Serial.print(i);
+//						Serial.print(": ");
+//						printCRGB(scanValues[i]);
+					}
+
+
+					// Update stripvalues
+					UpdateStrip();
+
+					inputString = "";
+					while(millis() - updateTime < CAPTURE_DELAY_MS) {};
+
+				} else {
+					// timeout on find
+					inputString = "";
 				}
 
-
-				// Update stripvalues
-				UpdateStrip();
-
-				while(millis() - updateTime < CAPTURE_DELAY_MS) {};
 
 				// reset updatetime
 				updateTime = millis();
