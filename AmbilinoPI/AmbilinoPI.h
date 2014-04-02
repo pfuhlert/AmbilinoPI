@@ -24,16 +24,19 @@ void setup();
 	const uint8_t 	COMM_SW_TX_PIN 	= 	11;
 
 	// Left Strip
-	const uint8_t 	LED_LEFT_PIN 		= 	7;
+	const uint8_t 	LED_LEFT_PIN 		= 	5;
 	const uint32_t 	LED_LEFT_COUNT 		= 	18;
 	// Right Strip
-	const uint8_t 	LED_RIGHT_PIN 		= 	8;
+	const uint8_t 	LED_RIGHT_PIN 		= 	7;
 	const uint32_t 	LED_RIGHT_COUNT 	= 	18;
+	// Right Strip
+	const uint8_t 	LED_TOP_PIN 		= 	6;
+	const uint32_t 	LED_TOP_COUNT 		= 	24;
 
 /*** Other Options ***/
 
 	// Set delay of getting new Data in ms. make it between 10 an 30 Hz
-	#define CAPTURE_DELAY_MS 200
+	#define CAPTURE_DELAY_MS 20
 
 	// delay between 2 smoothing steps - empiric
 	#define SMOOTHING_DELAY CAPTURE_DELAY_MS / 5
@@ -57,21 +60,25 @@ void setup();
 /*** Debug Modes ***/
 
 	// use simulated input
-//	#define MODE_SIMULATION 					// simulate input
+	#define MODE_SIMULATION 					// simulate input
 
-	// echo Soft/Hardware Serial to HardwareSerial
-	#define MODE_ECHO
+	// echo Soft and Hardware Serial to HardwareSerial
+//	#define MODE_ECHO
 
 /*** LEDs ***/
 
-	const uint32_t 	LED_LEFT_CHANNELS 	= 	LED_LEFT_COUNT * 3;
-	const uint32_t 	LED_RIGHT_CHANNELS 	= 	LED_RIGHT_COUNT * 3;
-	const uint32_t LED_CHANNELS = LED_LEFT_CHANNELS + LED_RIGHT_CHANNELS;
+	// Sum up stripes
+	const uint32_t LED_COUNT = LED_LEFT_COUNT + LED_RIGHT_COUNT + LED_TOP_COUNT;
 
+	// 3 Channels (RGB) per LED
+	const uint32_t LED_CHANNELS = LED_COUNT * 3;
+
+	// TODO option to invert stripes!
 
 	// create color structures
 	CRGB leds_left[LED_LEFT_COUNT];
 	CRGB leds_right[LED_RIGHT_COUNT];
+	CRGB leds_top[LED_TOP_COUNT];
 
 	const uint32_t COMM_FRAMESIZE = SYNC_PREFIX_LENGTH + SYNC_POSTFIX_LENGTH + LED_CHANNELS;
 

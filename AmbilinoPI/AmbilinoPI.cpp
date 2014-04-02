@@ -40,9 +40,9 @@ void printIntColor(int intColor[3]) {
 	printCRGB(color);
 }
 
-CRGB currValues[LED_LEFT_COUNT];
-CRGB scanValues[LED_LEFT_COUNT];
-int diffValues[LED_LEFT_COUNT][3];
+CRGB currValues[LED_COUNT];
+CRGB scanValues[LED_COUNT];
+int diffValues[LED_COUNT][3];
 
 String inputString;
 bool stringComplete;
@@ -51,15 +51,27 @@ void setup() {
 
 	// TODO Reset LEDs on startup - not possible with LEDS.showcolor -> nothing known of stripelength
 
-	LEDS.addLeds<WS2811, LED_LEFT_PIN, GRB>(leds_left, LED_LEFT_COUNT); //initializes the left LED-stripe
+	// fill stripes with zeroes
+//	memset(leds_left, 	0, LED_LEFT_COUNT * 3);
+//	memset(leds_right, 0, LED_RIGHT_COUNT * 3);
+//	memset(leds_top, 	0, LED_TOP_COUNT * 3);
+
+
+	LEDS.addLeds<WS2811, LED_LEFT_PIN	, GRB>(leds_left, 	LED_LEFT_COUNT); //initializes the left LED-stripe
+	LEDS.addLeds<WS2811, LED_RIGHT_PIN	, GRB>(leds_right, 	LED_RIGHT_COUNT); //initializes the left LED-stripe
+	LEDS.addLeds<WS2811, LED_TOP_PIN	, GRB>(leds_top, 	LED_TOP_COUNT); //initializes the left LED-stripe
 
 	// HACK for resetting LEDs
 //	LEDS.setBrightness(255);
 //	LEDS.showColor(CRGB::Black);
 //	while(1){}
 
-	//	LEDS.showColor(CRGB(0, 0, 0));
 	LEDS.setBrightness(LED_MAX_BRIGHTNESS);
+
+	// Short Test
+	LEDS.showColor(CRGB::White);
+	delay(300);
+	LEDS.showColor(CRGB::Black);
 
 	// Debugging Serial
 	Serial.begin(COMM_HW_BAUDRATE);
@@ -94,8 +106,9 @@ int limitChange(int* value) {
 void UpdateStrip() {
 	uint32_t updateTime = millis();
 	bool finished = true;
+
 	do {
-		for (int i = 0; i < LED_LEFT_COUNT; i++) {
+		for (int i = 0; i < LED_COUNT; i++) {
 			for(int color=0; color<3; color++) {
 				diffValues[i][color] = scanValues[i][color] - currValues[i][color];
 					if(diffValues[i][color] != 0) {
@@ -108,14 +121,28 @@ void UpdateStrip() {
 		}
 
 		// Limit to maxchange
-		for (int i = 0; i < LED_LEFT_COUNT; i++) {
+		for (int i = 0; i < LED_COUNT; i++) {
 			for(int color=0; color<3; color++) {
 				currValues[i][color] = currValues[i][color] + diffValues[i][color];
 			}
 
-			//printCRGB(currValues[i]);
-			leds_left[i].setRGB(currValues[i].r, currValues[i].g, currValues[i].b);
+//			printCRGB(currValues[i]);
+
+			int tempRightPosition = i-LED_LEFT_COUNT;
+			int tempTopPosition = i - LED_LEFT_COUNT - LED_RIGHT_COUNT;
+
+			// HACK ugly stripe decision. TODO better way?
+
+			if(i<LED_LEFT_COUNT) {
+				leds_left[i].setRGB(currValues[i].r, currValues[i].g, currValues[i].b);
+			} else if(tempRightPosition >= 0 && tempRightPosition<LED_RIGHT_COUNT) {
+				leds_right[tempRightPosition].setRGB(currValues[i].r, currValues[i].g, currValues[i].b);
+			} else if (tempTopPosition >= 0 && tempTopPosition<LED_TOP_COUNT) {
+				leds_top[tempTopPosition].setRGB(currValues[i].r, currValues[i].g, currValues[i].b);
+			}
 		}
+
+//		leds_top[0].setColorCode(CRGB::Pink);
 
 		// Update Strips
 		LEDS.show();
@@ -131,6 +158,7 @@ void fastLoop() {
 
 	uint32_t updateTime = millis();
 
+	// single fade in red -> teal -> green -> white -> blue -> white -> red ...
 	#ifdef MODE_SIMULATION
 
 		for (;;) {
@@ -138,18 +166,17 @@ void fastLoop() {
 			updateTime = millis();
 
 			for(int j = 0; j < 3; j++) {
-				memset(leds_left, 0, LED_LEFT_COUNT * 3);
-				for(int i = 0 ; i < LED_LEFT_COUNT; i++ ) {
-				  scanValues[i][0] = 255;
-				  scanValues[i][1] = 0;
-				  scanValues[i][2] = 0;
+				for(int i = 0 ; i < LED_COUNT; i++ ) {
+				  scanValues[i][j] = 255;
+				  scanValues[i][(j+1)%3] = 0;
+				  scanValues[i][(j+2)%3] = 0;
 				  UpdateStrip();
 				  delay(CAPTURE_DELAY_MS);
 				}
-				for(int i = LED_LEFT_COUNT ; i >= 0; i-- ) {
-				  scanValues[i][0] = 255;
-				  scanValues[i][1] = 255;
-				  scanValues[i][2] = 255;
+				for(int i = LED_COUNT ; i >= 0; i-- ) {
+					  scanValues[i][j] = 0;
+					  scanValues[i][(j+1)%3] = 255;
+					  scanValues[i][(j+2)%3] = 255;
 				  UpdateStrip();
 				  delay(CAPTURE_DELAY_MS);
 				}
@@ -158,6 +185,7 @@ void fastLoop() {
 			while(millis() - updateTime < CAPTURE_DELAY_MS) {};
 
 		}
+
 	#else
 
 
