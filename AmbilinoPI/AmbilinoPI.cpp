@@ -69,8 +69,12 @@ void setup() {
 	LEDS.setBrightness(LED_MAX_BRIGHTNESS);
 
 	// Short Test
-	LEDS.showColor(CRGB::White);
-	delay(300);
+	LEDS.showColor(CRGB::Red);
+	delay(200);
+	LEDS.showColor(CRGB::Green);
+	delay(200);
+	LEDS.showColor(CRGB::Blue);
+	delay(200);
 	LEDS.showColor(CRGB::Black);
 
 	// Debugging Serial
@@ -84,6 +88,7 @@ void setup() {
 
 	// avoid loop() function
 	fastLoop();
+
 }
 
 // limitChange() : limit max change according to sign
@@ -102,7 +107,7 @@ int limitChange(int* value) {
 }
 
 
-// new values should be in "scanvalues" - current LED values in currValues
+// new values should be in "scanValues" - current LED values in "currValues"
 void UpdateStrip() {
 	uint32_t updateTime = millis();
 	bool finished = true;
@@ -128,23 +133,32 @@ void UpdateStrip() {
 
 //			printCRGB(currValues[i]);
 
-			int tempRightPosition = i-LED_LEFT_COUNT;
-			int tempTopPosition = i - LED_LEFT_COUNT - LED_RIGHT_COUNT;
+			int tempRightPosition = i - LED_LEFT_COUNT;
+			int tempTopPosition =   i - LED_LEFT_COUNT - LED_RIGHT_COUNT;
 
 			// HACK ugly stripe decision. TODO better way?
-
 			if(i<LED_LEFT_COUNT) {
-				leds_left[i].setRGB(currValues[i].r, currValues[i].g, currValues[i].b);
+				if(LED_REVERSE_STRIPE[0]) {
+					leds_left[LED_LEFT_COUNT - i - 1].setRGB(currValues[i].r, currValues[i].g, currValues[i].b);
+				} else {
+					leds_left[i].setRGB(currValues[i].r, currValues[i].g, currValues[i].b);
+				}
 			} else if(tempRightPosition >= 0 && tempRightPosition<LED_RIGHT_COUNT) {
-				leds_right[tempRightPosition].setRGB(currValues[i].r, currValues[i].g, currValues[i].b);
+				if(LED_REVERSE_STRIPE[1]) {
+					leds_right[LED_RIGHT_COUNT - tempRightPosition - 1].setRGB(currValues[i].r, currValues[i].g, currValues[i].b);
+				} else {
+					leds_right[tempRightPosition].setRGB(currValues[i].r, currValues[i].g, currValues[i].b);
+				}
 			} else if (tempTopPosition >= 0 && tempTopPosition<LED_TOP_COUNT) {
-				leds_top[tempTopPosition].setRGB(currValues[i].r, currValues[i].g, currValues[i].b);
+				if(LED_REVERSE_STRIPE[2]) {
+					leds_top[LED_TOP_COUNT - tempTopPosition - 1].setRGB(currValues[i].r, currValues[i].g, currValues[i].b);
+				} else {
+					leds_top[tempTopPosition].setRGB(currValues[i].r, currValues[i].g, currValues[i].b);
+				}
 			}
 		}
 
-//		leds_top[0].setColorCode(CRGB::Pink);
-
-		// Update Strips
+		// Physically map new values to LEDs
 		LEDS.show();
 		delay(SMOOTHING_DELAY);
 
@@ -167,78 +181,73 @@ void fastLoop() {
 
 			for(int j = 0; j < 3; j++) {
 				for(int i = 0 ; i < LED_COUNT; i++ ) {
-				  scanValues[i][j] = 255;
-				  scanValues[i][(j+1)%3] = 0;
-				  scanValues[i][(j+2)%3] = 0;
+				  scanValues[i][j] 			= 255;
+				  scanValues[i][(j+1)%3] 	= 0;
+				  scanValues[i][(j+2)%3] 	= 0;
 				  UpdateStrip();
 				  delay(CAPTURE_DELAY_MS);
 				}
-				for(int i = LED_COUNT ; i >= 0; i-- ) {
-					  scanValues[i][j] = 0;
-					  scanValues[i][(j+1)%3] = 255;
-					  scanValues[i][(j+2)%3] = 255;
-				  UpdateStrip();
-				  delay(CAPTURE_DELAY_MS);
-				}
+//				for(int i = LED_COUNT ; i >= 0; i-- ) {
+//					  scanValues[i][j] = 0;
+//					  scanValues[i][(j+1)%3] = 255;
+//					  scanValues[i][(j+2)%3] = 255;
+//				  UpdateStrip();
+//				  delay(CAPTURE_DELAY_MS);
+//				}
 			  }
 
 			while(millis() - updateTime < CAPTURE_DELAY_MS) {};
 
 		}
-
 	#else
 
 
 		// start of main loop
+		char inChar;
+
 		for (;;) {
 
-			if(Serial.find(SYNC_PREFIX)) {
+//			Serial.println(softSerial.available());
 
-				// TODO anders organisieren?
+			// TODO detection not working properly.. hier weitermachen!
+			if(softSerial.find("SYNC")) {
+				for(int i=0;i<LED_CHANNELS;i++) {
 
-				// manually limit buffer
-				serialBuffer[108] = '\0';
-
-				#ifdef MODE_ECHO
-				#endif
-
-				char inChar;
-				if(Serial.find(SYNC_PREFIX)) {
-					for(int i=0;i<COMM_FRAMESIZE-SYNC_PREFIX_LENGTH;i++) {
-						while(!Serial.available()) {}
-						inChar = Serial.read();
-						inputString += inChar;
-					}
-
-					int i=0;
-					for(int i=0;i<LED_LEFT_COUNT;i++) {
-						for(int color=0;color<3;color++) {
-							scanValues[i][color] = (byte) inputString[i*3 + color];
-						}
-
-						// Print read Colors of pixel i
-//						Serial.print(i);
-//						Serial.print(": ");
-//						printCRGB(scanValues[i]);
-					}
-
-
-					// Update stripvalues
-					UpdateStrip();
-
-					inputString = "";
-					while(millis() - updateTime < CAPTURE_DELAY_MS) {};
-
-				} else {
-					// timeout on find
-					inputString = "";
+					while(!softSerial.available()) {}
+					inChar = softSerial.read();
+					inputString += inChar;
 				}
 
+				for(;;) {
+					if(softSerial.available()) {
+						Serial.write(softSerial.read());
+					}
+				}
 
-				// reset updatetime
-				updateTime = millis();
+				Serial.println(inputString.length());
+				Serial.println(COMM_SW_BAUDRATE);
 
+				// put items in buffer
+				for(int i=0;i<LED_COUNT;i++) {
+					for(int color=0;color<3;color++) {
+						scanValues[i][color] = (byte) inputString[3*i + color];
+					}
+				}
+
+				// Update stripvalues
+				UpdateStrip();
+
+				while(millis() - updateTime < CAPTURE_DELAY_MS) {};
+
+			} else {
+				Serial.println("timeout!");
+				Serial.flush();
 			}
+
+
+			inputString = "\0";
+			// reset updatetime
+			updateTime = millis();
 		}
 	#endif // !MODE_SIMULATION
 }
