@@ -8,6 +8,11 @@
 #define _AmbilinoPi_H_
 #include "Arduino.h"
 #include "FastLED.h"
+
+// remember to change the line in SoftwareSerial.h:
+// #define _SS_MAX_RX_BUFF xx
+// to
+// #define _SS_MAX_RX_BUFF 256
 #include <SoftwareSerial.h>
 
 #ifdef __cplusplus
@@ -28,34 +33,35 @@ void setup();
 	const uint32_t 	LED_LEFT_COUNT 		= 	18;
 	// Right Strip
 	const uint8_t 	LED_RIGHT_PIN 		= 	7;
-	const uint32_t 	LED_RIGHT_COUNT 	= 	18;
+	const uint32_t 	LED_RIGHT_COUNT 	= 	0;
 	// Top Strip
 	const uint8_t 	LED_TOP_PIN 		= 	6;
-	const uint32_t 	LED_TOP_COUNT 		= 	24;
+	const uint32_t 	LED_TOP_COUNT 		= 	15;
 
 /*** Other Options ***/
 
 	// Set delay of getting new Data in ms. make it between 10 an 30 Hz
-	#define CAPTURE_DELAY_MS 20
+	#define CAPTURE_DELAY_MS 30
 
 	// delay between 2 smoothing steps - empiric
 	#define SMOOTHING_DELAY CAPTURE_DELAY_MS / 5
+	//CAPTURE_DELAY_MS / 5
 
 	// TODO umbau auf max # steps?
 	// Maximimum Smoothing time for one frame. ~~ CAPTURE / 3 seems OK. empiric!
 	#define SMOOTHING_MAX_DELAY 4 * SMOOTHING_DELAY
 
 	// Color Difference: The Higher the value, the more reactive but also more aggressive
-	#define SMOOTHING_MAX_STEP 20
+	#define SMOOTHING_MAX_STEP 5
 
 	// Set maximum brightness (0-255)
 	const uint32_t LED_MAX_BRIGHTNESS = 32;
 
 	// Communication to Raspberry
-	#define SYNC_PREFIX "SYNC"
-	#define SYNC_POSTFIX "\r\n"
-	#define SYNC_PREFIX_LENGTH 4
-	#define SYNC_POSTFIX_LENGTH 2
+	#define COMM_SYNC_PREFIX "SYNC"
+	#define COMM_SYNC_POSTFIX "\r\n"
+	#define COMM_SYNC_PREFIX_LENGTH 4
+	#define COMM_SYNC_POSTFIX_LENGTH 2
 
 /*** Debug Modes ***/
 
@@ -96,17 +102,21 @@ void setup();
 	CRGB leds_left[LED_LEFT_COUNT];
 	CRGB leds_right[LED_RIGHT_COUNT];
 	CRGB leds_top[LED_TOP_COUNT];
-	// TODO implement bottom?
+	// TODO bottom
 
-	const uint32_t COMM_FRAMESIZE = SYNC_PREFIX_LENGTH + SYNC_POSTFIX_LENGTH + LED_CHANNELS;
+	// structs for leds
+	int currValues[LED_COUNT][3];
+	int scanValues[LED_COUNT][3];
+	int diffValues[LED_COUNT][3];
+
+	// debugging led
+	const int led_pin = 13;
 
 /*** Communication ***/
+	const uint32_t COMM_FRAMESIZE = COMM_SYNC_PREFIX_LENGTH + COMM_SYNC_POSTFIX_LENGTH + LED_CHANNELS;
 
 	#define 	COMM_HW_BAUDRATE 	115200
-	#define 	COMM_SW_BAUDRATE 	38400
-
-	// RX buffer size from SoftwareSerial.h needs to contain a whole frame size of #LED * 3 Byte
-	#define _SS_MAX_RX_BUFF 256
+	#define 	COMM_SW_BAUDRATE 	57600
 
 	// TODO letztlich auf USB serial umstellen? arduino und raspberry über USB verbinden!
 	SoftwareSerial 	softSerial(COMM_SW_RX_PIN, COMM_SW_TX_PIN);
@@ -116,8 +126,9 @@ void setup();
 /*** Functions ***/
 
 	void fastLoop();
-	void UpdateStrip();
+	void filterValues();
 	void limitChange();
+	void getNewScan();
 
 	// dummy loop fkt. for arduino. Using fastLoop (for(;;)) instead for better performance
 	void loop() {}

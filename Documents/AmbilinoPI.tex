@@ -141,47 +141,17 @@ The basic schematic of the circuit looks like this:
 \end{figure}	
 %
 
+\begin{figure}[hb]
+\includegraphics[scale=0.5]{breadboard.png}
+%\includegraphics[scale=0.5]{rpi-gpio.png}
+\caption{Realisation of the schematic on breadboard.}
+\label{fig:breadboard}
+\end{figure}
 
-	%\includegraphics[scale=0.5]{rpi-gpio.png}
 
 \subsection{Boblight}
 
-The Boblight software is used on the Raspberry inside the XBMC distribution like Openelec\footnote{\href{http://www.openelec.tv/}{http://www.openelec.tv/}}. The LED setup has to be configured inside the configuration file which is loaded at startup of boblightd. You can use a configuration generator which can be downloaded at \href{http://www.sedu-board.de/sedu-ambilight/howto-boblightconfigtool/}{sedu-board.de}. Refer to the boblight documentation\footnote for details. In general, the file should look like this: 
-
-\begin{verbatim}
-[device]
-name ambilight
-# Where to put signal -> UART
-output /dev/ttyAMA0
-# channels = number of leds * 3
-channels 54
-# use type momo
-type momo
-# interval sets the updaterate in microseconds
-interval 10000000
-# prefix = "SYNC"
-prefix 53 59 4E 43
-# postfix = "\r\n"
-postfix 0D 0A
-# 38400 -> 30ms per frame min
-# UART BAUDrate
-rate 38400
-
-[color]
-name red
-rgb FF0000
-adjust          0.5
-blacklevel      0.1
-gamma           2.3
-
-[light]
-name led0000
-color red ambilightleft 1
-color green ambilightleft 2
-color blue ambilightleft 3
-hscan 0 10
-vscan 0 6
-\end{verbatim}
+The Boblight software is used on the Raspberry inside the XBMC distribution like Openelec\footnote{\href{http://www.openelec.tv/}{http://www.openelec.tv/}}. The LED setup has to be configured inside the configuration file which is loaded at startup of boblightd. You can use a configuration generator which can be downloaded at \href{http://www.sedu-board.de/sedu-ambilight/howto-boblightconfigtool/}{sedu-board.de}. Refer to the boblight documentation\footnote for details. In general, the file should contain the number of channels ( = number of LEDs * 3), the update interval, prefix, postfix, and the baudrate of the system. 
 
 \label{fig:boblightconfexample}
 After the general setup, you can tweak the colors of your stripe with adjust, blacklevel and gamma. When you are finished, you can set the individual LEDs and their corresponding screen rectangles.
