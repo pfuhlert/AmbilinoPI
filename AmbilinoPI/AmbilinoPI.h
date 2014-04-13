@@ -25,25 +25,32 @@ void setup();
 #endif
 
 /*** Physical Setup **/
-	const uint8_t 	COMM_SW_RX_PIN 	= 	8;
+	const uint8_t 	COMM_SW_RX_PIN 	= 	9;
 	const uint8_t 	COMM_SW_TX_PIN 	= 	11;
 
 	// Left Strip
 	const uint8_t 	LED_LEFT_PIN 		= 	5;
-	const uint32_t 	LED_LEFT_COUNT 		= 	18;
+	const uint16_t 	LED_LEFT_COUNT 		= 	6;
 	// Right Strip
 	const uint8_t 	LED_RIGHT_PIN 		= 	7;
-	const uint32_t 	LED_RIGHT_COUNT 	= 	0;
+	const uint16_t 	LED_RIGHT_COUNT 	= 	6;
 	// Top Strip
 	const uint8_t 	LED_TOP_PIN 		= 	6;
-	const uint32_t 	LED_TOP_COUNT 		= 	15;
+	const uint16_t 	LED_TOP_COUNT 		= 	8;
+
+	// upscaling used to put same color on multiple LEDs
+	const uint8_t 	LED_UPSCALE 	= 	3;
+
+	// define if soft- (true) or hardware (false) serial should be used as input
+	#define COMM_SW_INPUT true
 
 /*** Other Options ***/
 
 	// Set delay of getting new Data in ms. make it between 10 an 30 Hz
-	#define CAPTURE_DELAY_MS 30
+	#define CAPTURE_DELAY_MS 20
 
 	// delay between 2 smoothing steps - empiric
+	// should be less than 90% * CAPTURE_DELAY_MS
 	#define SMOOTHING_DELAY CAPTURE_DELAY_MS / 5
 	//CAPTURE_DELAY_MS / 5
 
@@ -52,10 +59,10 @@ void setup();
 	#define SMOOTHING_MAX_DELAY 4 * SMOOTHING_DELAY
 
 	// Color Difference: The Higher the value, the more reactive but also more aggressive
-	#define SMOOTHING_MAX_STEP 5
+	#define SMOOTHING_MAX_STEP 10
 
 	// Set maximum brightness (0-255)
-	const uint32_t LED_MAX_BRIGHTNESS = 32;
+	const uint32_t LED_MAX_BRIGHTNESS = 128;
 
 	// Communication to Raspberry
 	#define COMM_SYNC_PREFIX "SYNC"
@@ -63,33 +70,28 @@ void setup();
 	#define COMM_SYNC_PREFIX_LENGTH 4
 	#define COMM_SYNC_POSTFIX_LENGTH 2
 
-/*** Debug Modes ***/
-
-	// use simulated input
-//	#define MODE_SIMULATION 					// simulate input
+/*** Debug ***/
 
 	// echo Soft and Hardware Serial to HardwareSerial
-	#define MODE_ECHO
+//	#define MODE_ECHO
 
-/*** LEDs ***/
-
-
-	/*
-	 * Set the Orientation of the Stripes. The orientation points from the cable connection to the loose end.
-	 * If Reverse[i] = false, it looks like this:
-	 *
-	 *			Top
-	 *   | ---------------> | R
-	 * L |			  		| I
-	 * E |			 		| G
-	 * F |			 		| H
-	 * T |					| T
-	 *   v ---------------> v
-	 *			Bottom
-	 */
+/*** LEDs ***
+ * Set the Orientation of the Stripes. The orientation points from the cable connection to the loose end.
+ * If Reverse[i] = false, it looks like this:
+ *
+ *			Top
+ *   | ---------------> | R
+ * L |			  		| I
+ * E |			 		| G
+ * F |			 		| H
+ * T |					| T
+ *   v ---------------> v
+ *			Bottom
+ */
 
 	// TODO struct LED_SETUP!
 	// pin, count, reverse
+	// left, right, top, down
 	bool LED_REVERSE_STRIPE[4] = {false, false, false, false};
 
 	// Sum up stripes
@@ -99,9 +101,9 @@ void setup();
 	const uint32_t LED_CHANNELS = LED_COUNT * 3;
 
 	// create color structures
-	CRGB leds_left[LED_LEFT_COUNT];
-	CRGB leds_right[LED_RIGHT_COUNT];
-	CRGB leds_top[LED_TOP_COUNT];
+	CRGB leds_left[LED_LEFT_COUNT*LED_UPSCALE];
+	CRGB leds_right[LED_RIGHT_COUNT*LED_UPSCALE];
+	CRGB leds_top[LED_TOP_COUNT*LED_UPSCALE];
 	// TODO bottom
 
 	// structs for leds
@@ -113,12 +115,20 @@ void setup();
 	const int led_pin = 13;
 
 /*** Communication ***/
-	const uint32_t COMM_FRAMESIZE = COMM_SYNC_PREFIX_LENGTH + COMM_SYNC_POSTFIX_LENGTH + LED_CHANNELS;
+
+	const uint32_t COMM_FRAMESIZE = LED_CHANNELS + COMM_SYNC_POSTFIX_LENGTH;
 
 	#define 	COMM_HW_BAUDRATE 	115200
 	#define 	COMM_SW_BAUDRATE 	57600
 
-	// TODO letztlich auf USB serial umstellen? arduino und raspberry über USB verbinden!
+
+
+	// TODO use USB communicate
+
+	// pointer for soft- or hardwareserial. can be switched in runtime
+	Stream* myStream;
+
+	// softwareSerial
 	SoftwareSerial 	softSerial(COMM_SW_RX_PIN, COMM_SW_TX_PIN);
 	uint8_t* serialBuffer = new uint8_t[COMM_FRAMESIZE];
 	uint32_t serialCounter;

@@ -1,6 +1,16 @@
 // Do not remove the include below
 #include "AmbilinoPi.h"
 
+uint32_t time;
+void printTimeSinceLastCall(String caption) {
+	time = micros() - time;
+	Serial.print(caption);
+	time = time / 1000;
+	Serial.print(time);
+	Serial.println("ms.");
+	time = micros();
+}
+
 void printFrame(uint8_t* buffer, uint8_t length) {
 
 	for (int i = 1; i <= length; i++) {
@@ -72,6 +82,7 @@ void printStripes() {
 	Serial.println();
 }
 
+
 // shows real led values inside currValues in LED strips
 void updateLEDs() {
 
@@ -80,11 +91,17 @@ void updateLEDs() {
 		for(int color=0; color<3; color++) {
 
 			if(i < LED_LEFT_COUNT) {
-				leds_left[i][color] = scanValues[i][color];
+				for(int upscaler=0; upscaler<LED_UPSCALE;upscaler++) {
+					leds_left[LED_UPSCALE*i + upscaler][color] = currValues[i][color];
+				}
 			} else if(i < LED_LEFT_COUNT + LED_RIGHT_COUNT) {
-				leds_right[i - LED_LEFT_COUNT][color] = scanValues[i][color];
+				for(int upscaler=0; upscaler<LED_UPSCALE;upscaler++) {
+					leds_right[LED_UPSCALE * (i - LED_LEFT_COUNT) + upscaler][color] = currValues[i][color];
+				}
 			} else if(i < LED_LEFT_COUNT + LED_RIGHT_COUNT + LED_TOP_COUNT) {
-				leds_top[i - LED_LEFT_COUNT - LED_RIGHT_COUNT][color] = scanValues[i][color];
+				for(int upscaler=0; upscaler<LED_UPSCALE;upscaler++) {
+					leds_top[LED_UPSCALE * (i - LED_LEFT_COUNT - LED_RIGHT_COUNT) + upscaler][color] = currValues[i][color];
+				}
 			}
 
 		}
@@ -130,17 +147,24 @@ void getNewScan() {
 
 	byte inByte;
 
-	while(softSerial.find(COMM_SYNC_PREFIX) != true) {
+//		while(Serial.find(COMM_SYNC_PREFIX) != true) {
+//			Serial.write("find fail!");
+//		}
+
+	if(softSerial.find(COMM_SYNC_PREFIX)) {
+		digitalWrite(led_pin, HIGH);
+	} else {
+		digitalWrite(led_pin, LOW);
 	}
 
-	while (softSerial.available() < COMM_FRAMESIZE) {
-//		Serial.println("waiting... ");
-	}
+	while (softSerial.available() == COMM_FRAMESIZE) {
 
-	for (int i = 0; i < LED_CHANNELS; i++) {
+		for (int i = 0; i < LED_CHANNELS; i++) {
+			inByte = softSerial.read();
+			scanValues[i/3][i%3] = (int) inByte;
+		}
 
-		inByte = softSerial.read();
-		scanValues[i/3][i%3] = (int) inByte;
+//		printFrame((uint8_t*) scanValues, LED_CHANNELS);
 	}
 
 }
@@ -148,24 +172,16 @@ void getNewScan() {
 void setup() {
 
 	// connect stripes to LED struct
-	LEDS.addLeds<WS2811, LED_LEFT_PIN, 	GRB>(leds_left, LED_LEFT_COUNT); //initializes the left LED-stripe
-	LEDS.addLeds<WS2811, LED_RIGHT_PIN, GRB>(leds_right, LED_RIGHT_COUNT); //initializes the left LED-stripe
-	LEDS.addLeds<WS2811, LED_TOP_PIN, 	GRB>(leds_top, LED_TOP_COUNT); //initializes the left LED-stripe
+	//initializes the LED-stripes
+	LEDS.addLeds<WS2811, LED_LEFT_PIN, 	GRB>(leds_left, LED_LEFT_COUNT * LED_UPSCALE);
+	LEDS.addLeds<WS2811, LED_RIGHT_PIN, GRB>(leds_right, LED_RIGHT_COUNT * LED_UPSCALE);
+	LEDS.addLeds<WS2811, LED_TOP_PIN, 	GRB>(leds_top, LED_TOP_COUNT * LED_UPSCALE);
 
 	// set max brightness
 	LEDS.setBrightness(LED_MAX_BRIGHTNESS);
 
-	// set up arduino LED on pin 13
-	pinMode(13, OUTPUT);
-
-	// Short Test
-	LEDS.showColor(CRGB::Red);
-	delay(500);
-	LEDS.showColor(CRGB::Green);
-	delay(500);
-	LEDS.showColor(CRGB::Blue);
-	delay(500);
-	LEDS.showColor(CRGB::Black);
+	// set up LED on pin 13
+	pinMode(led_pin, OUTPUT);
 
 	// Debugging Serial
 	Serial.begin(COMM_HW_BAUDRATE);
@@ -176,7 +192,25 @@ void setup() {
 	// Wait for Serials to set up.
 	while (!Serial) {}
 
-//	inputString.reserve(LED_CHANNELS);
+	// clear serial buffers
+	Serial.flush();
+	softSerial.flush();
+
+	// Set the used input stream to according serial
+	#ifdef COMM_SW_INPUT
+		myStream = &softSerial;
+	#else
+		myStream = &Serial;
+	#endif
+
+	// Short Test
+	LEDS.showColor(CRGB::Red);
+	delay(1000);
+	LEDS.showColor(CRGB::Green);
+	delay(1000);
+	LEDS.showColor(CRGB::Blue);
+	delay(1000);
+	LEDS.showColor(CRGB::Black);
 
 	// avoid loop() function
 	fastLoop();
@@ -186,7 +220,19 @@ void setup() {
 // start of main loop
 void fastLoop() {
 
-	uint32_t fastLoopTime = millis();
+#ifdef MODE_ECHO
+	for(;;) {
+		if(softSerial.available()) {
+			Serial.write(softSerial.read());
+		}
+		if(Serial.available()) {
+			Serial.write(Serial.read());
+		}
+	}
+#endif
+
+	unsigned long fastLoopTime = millis();
+	uint32_t loopTimeShower;
 
 	for (;;) {
 
@@ -196,12 +242,15 @@ void fastLoop() {
 		filterValues();
 		updateLEDs();
 
-		while(millis() - fastLoopTime < CAPTURE_DELAY_MS) {
-			// wait
+		// TODO timing problem with softSerial! not working!
+		while(loopTimeShower < CAPTURE_DELAY_MS) {
+			loopTimeShower = millis() - fastLoopTime;
 		}
+
 
 		// clear overhead data
 		softSerial.flush();
+		Serial.flush();
 
 	}
 }
