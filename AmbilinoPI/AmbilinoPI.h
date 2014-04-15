@@ -75,26 +75,10 @@ void setup();
 	// echo Soft and Hardware Serial to HardwareSerial
 //	#define MODE_ECHO
 
-/*** LEDs ***
- * Set the Orientation of the Stripes. The orientation points from the cable connection to the loose end.
- * If Reverse[i] = false, it looks like this:
- *
- *			Top
- *   | ---------------> | R
- * L |			  		| I
- * E |			 		| G
- * F |			 		| H
- * T |					| T
- *   v ---------------> v
- *			Bottom
- */
+/*** LEDs ***/
 
 	// TODO struct LED_SETUP!
 	// pin, count, reverse
-
-	// left, right, top, down
-	// todo delete?
-	bool LED_REVERSE_STRIPE[4] = {true, true, false, false};
 
 	// Sum up stripes
 	const uint32_t LED_COUNT = LED_LEFT_COUNT + LED_RIGHT_COUNT + LED_TOP_COUNT;
@@ -119,7 +103,6 @@ void setup();
 /*** Communication ***/
 
 	// TODO use USB communicate
-	// TODO 0-20% colors in boblight
 
 	// Expected frame size ^= one line of communication
 	const uint32_t COMM_FRAMESIZE = LED_CHANNELS + COMM_SYNC_POSTFIX_LENGTH;
