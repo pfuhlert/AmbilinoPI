@@ -30,13 +30,13 @@ void setup();
 
 	// Left Strip
 	const uint8_t 	LED_LEFT_PIN 		= 	5;
-	const uint16_t 	LED_LEFT_COUNT 		= 	6;
+	const uint16_t 	LED_LEFT_COUNT 		= 	14;
 	// Right Strip
 	const uint8_t 	LED_RIGHT_PIN 		= 	7;
 	const uint16_t 	LED_RIGHT_COUNT 	= 	6;
 	// Top Strip
 	const uint8_t 	LED_TOP_PIN 		= 	6;
-	const uint16_t 	LED_TOP_COUNT 		= 	8;
+	const uint16_t 	LED_TOP_COUNT 		= 	0;
 
 	// upscaling used to put same color on multiple LEDs
 	const uint8_t 	LED_UPSCALE 	= 	3;
@@ -59,10 +59,10 @@ void setup();
 	#define SMOOTHING_MAX_DELAY 4 * SMOOTHING_DELAY
 
 	// Color Difference: The Higher the value, the more reactive but also more aggressive
-	#define SMOOTHING_MAX_STEP 10
+	#define SMOOTHING_MAX_STEP 8
 
 	// Set maximum brightness (0-255)
-	const uint32_t LED_MAX_BRIGHTNESS = 128;
+	const uint32_t LED_MAX_BRIGHTNESS = 64;
 
 	// Communication to Raspberry
 	#define COMM_SYNC_PREFIX "SYNC"
@@ -91,8 +91,10 @@ void setup();
 
 	// TODO struct LED_SETUP!
 	// pin, count, reverse
+
 	// left, right, top, down
-	bool LED_REVERSE_STRIPE[4] = {false, false, false, false};
+	// todo delete?
+	bool LED_REVERSE_STRIPE[4] = {true, true, false, false};
 
 	// Sum up stripes
 	const uint32_t LED_COUNT = LED_LEFT_COUNT + LED_RIGHT_COUNT + LED_TOP_COUNT;
@@ -116,17 +118,17 @@ void setup();
 
 /*** Communication ***/
 
+	// TODO use USB communicate
+	// TODO 0-20% colors in boblight
+
+	// Expected frame size ^= one line of communication
 	const uint32_t COMM_FRAMESIZE = LED_CHANNELS + COMM_SYNC_POSTFIX_LENGTH;
 
-	#define 	COMM_HW_BAUDRATE 	115200
+	#define 	COMM_HW_BAUDRATE 	57600
 	#define 	COMM_SW_BAUDRATE 	57600
 
-
-
-	// TODO use USB communicate
-
-	// pointer for soft- or hardwareserial. can be switched in runtime
-	Stream* myStream;
+	// Pointer for Soft- or Hardware Serial. Can be switched at runtime
+//	Stream* myStream;
 
 	// softwareSerial
 	SoftwareSerial 	softSerial(COMM_SW_RX_PIN, COMM_SW_TX_PIN);

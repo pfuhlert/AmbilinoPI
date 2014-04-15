@@ -92,7 +92,7 @@ void updateLEDs() {
 
 			if(i < LED_LEFT_COUNT) {
 				for(int upscaler=0; upscaler<LED_UPSCALE;upscaler++) {
-					leds_left[LED_UPSCALE*i + upscaler][color] = currValues[i][color];
+						leds_left[LED_UPSCALE*i + upscaler][color] = currValues[i][color];
 				}
 			} else if(i < LED_LEFT_COUNT + LED_RIGHT_COUNT) {
 				for(int upscaler=0; upscaler<LED_UPSCALE;upscaler++) {
@@ -197,11 +197,11 @@ void setup() {
 	softSerial.flush();
 
 	// Set the used input stream to according serial
-	#ifdef COMM_SW_INPUT
-		myStream = &softSerial;
-	#else
-		myStream = &Serial;
-	#endif
+//	#ifdef COMM_SW_INPUT
+////		myStream = &softSerial;
+//	#else
+//		myStream = &Serial;
+//	#endif
 
 	// Short Test
 	LEDS.showColor(CRGB::Red);
@@ -222,7 +222,7 @@ void fastLoop() {
 
 #ifdef MODE_ECHO
 	for(;;) {
-		if(softSerial.available()) {
+		if(myStream.available()) {
 			Serial.write(softSerial.read());
 		}
 		if(Serial.available()) {
