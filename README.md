@@ -5,7 +5,7 @@ Maps color signals of RaspberryPI to LED Stripes.
 
 This project uses an Arduino to Map Raspberry PI's Screen output to LED stripes. For detailed documentation take a look at 
 
-[AmbilinoPI.pdf](AmbilinoPI/Documents/AmbilinoPI.pdf)
+[AmbilinoPI.pdf](Documents/AmbilinoPI.pdf)
 
 Referenced projects are
 
