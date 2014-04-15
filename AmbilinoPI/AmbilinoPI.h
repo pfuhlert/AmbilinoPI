@@ -46,8 +46,8 @@ void setup();
 
 /*** Other Options ***/
 
-	// Set delay of getting new Data in ms. make it between 10 an 30 Hz
-	#define CAPTURE_DELAY_MS 20
+	// Set delay of getting new Data in ms. make it ~10 - 30 Hz
+	#define CAPTURE_DELAY_MS 30
 
 	// delay between 2 smoothing steps - empiric
 	// should be less than 90% * CAPTURE_DELAY_MS
